@@ -1,7 +1,15 @@
+# A future statement is a directive to the compiler that a particular module should be compiled using syntax or semantics
+# that will be available in a specified future release of Python where the feature becomes standard.
+# KNOWLEDGE https://docs.python.org/3/reference/simple_stmts.html#future-statements
+# KNOWLEDGE  https://docs.python.org/3/tutorial/modules.html#more-on-modules
 from __future__ import print_function
 import sys
 sys.path.insert(0, 'src')
-import transform, numpy as np, vgg, pdb, os
+import transform
+import numpy as np
+import vgg
+import pdb
+import os
 import scipy.misc
 import tensorflow as tf
 from utils import save_img, get_img, exists, list_files
@@ -52,7 +60,8 @@ def ffwd_video(path_in, path_out, checkpoint_dir, device_t='/gpu:0', batch_size=
                 X[i] = X[count - 1]  # Use last frame to fill X
             _preds = sess.run(preds, feed_dict={img_placeholder: X})
             for i in range(0, count):
-                video_writer.write_frame(np.clip(_preds[i], 0, 255).astype(np.uint8))
+                video_writer.write_frame(
+                    np.clip(_preds[i], 0, 255).astype(np.uint8))
 
         frame_count = 0  # The frame count that written to X
         for frame in video_clip.iter_frames():
@@ -117,22 +126,24 @@ def ffwd(data_in, paths_out, checkpoint_dir, device_t='/gpu:0', batch_size=4):
             else:
                 X = data_in[pos:pos+batch_size]
 
-            _preds = sess.run(preds, feed_dict={img_placeholder:X})
+            _preds = sess.run(preds, feed_dict={img_placeholder: X})
             for j, path_out in enumerate(curr_batch_out):
                 save_img(path_out, _preds[j])
-                
+
         remaining_in = data_in[num_iters*batch_size:]
         remaining_out = paths_out[num_iters*batch_size:]
     if len(remaining_in) > 0:
-        ffwd(remaining_in, remaining_out, checkpoint_dir, 
-            device_t=device_t, batch_size=1)
+        ffwd(remaining_in, remaining_out, checkpoint_dir,
+             device_t=device_t, batch_size=1)
+
 
 def ffwd_to_img(in_path, out_path, checkpoint_dir, device='/cpu:0'):
     paths_in, paths_out = [in_path], [out_path]
     ffwd(paths_in, paths_out, checkpoint_dir, batch_size=1, device_t=device)
 
-def ffwd_different_dimensions(in_path, out_path, checkpoint_dir, 
-            device_t=DEVICE, batch_size=4):
+
+def ffwd_different_dimensions(in_path, out_path, checkpoint_dir,
+                              device_t=DEVICE, batch_size=4):
     in_path_of_shape = defaultdict(list)
     out_path_of_shape = defaultdict(list)
     for i in range(len(in_path)):
@@ -143,8 +154,9 @@ def ffwd_different_dimensions(in_path, out_path, checkpoint_dir,
         out_path_of_shape[shape].append(out_image)
     for shape in in_path_of_shape:
         print('Processing images of shape %s' % shape)
-        ffwd(in_path_of_shape[shape], out_path_of_shape[shape], 
-            checkpoint_dir, device_t, batch_size)
+        ffwd(in_path_of_shape[shape], out_path_of_shape[shape],
+             checkpoint_dir, device_t, batch_size)
+
 
 def build_parser():
     parser = ArgumentParser()
@@ -154,7 +166,7 @@ def build_parser():
                         metavar='CHECKPOINT', required=True)
 
     parser.add_argument('--in-path', type=str,
-                        dest='in_path',help='dir or file to transform',
+                        dest='in_path', help='dir or file to transform',
                         metavar='IN_PATH', required=True)
 
     help_out = 'destination (dir or file) of transformed file or files'
@@ -163,18 +175,19 @@ def build_parser():
                         required=True)
 
     parser.add_argument('--device', type=str,
-                        dest='device',help='device to perform compute on',
+                        dest='device', help='device to perform compute on',
                         metavar='DEVICE', default=DEVICE)
 
     parser.add_argument('--batch-size', type=int,
-                        dest='batch_size',help='batch size for feedforwarding',
+                        dest='batch_size', help='batch size for feedforwarding',
                         metavar='BATCH_SIZE', default=BATCH_SIZE)
 
     parser.add_argument('--allow-different-dimensions', action='store_true',
-                        dest='allow_different_dimensions', 
+                        dest='allow_different_dimensions',
                         help='allow different image dimensions')
 
     return parser
+
 
 def check_opts(opts):
     exists(opts.checkpoint_dir, 'Checkpoint not found!')
@@ -182,6 +195,7 @@ def check_opts(opts):
     if os.path.isdir(opts.out_path):
         exists(opts.out_path, 'out dir not found!')
         assert opts.batch_size > 0
+
 
 def main():
     parser = build_parser()
@@ -191,7 +205,7 @@ def main():
     if not os.path.isdir(opts.in_path):
         if os.path.exists(opts.out_path) and os.path.isdir(opts.out_path):
             out_path = \
-                    os.path.join(opts.out_path,os.path.basename(opts.in_path))
+                os.path.join(opts.out_path, os.path.basename(opts.in_path))
         else:
             out_path = opts.out_path
 
@@ -199,14 +213,15 @@ def main():
                     device=opts.device)
     else:
         files = list_files(opts.in_path)
-        full_in = [os.path.join(opts.in_path,x) for x in files]
-        full_out = [os.path.join(opts.out_path,x) for x in files]
+        full_in = [os.path.join(opts.in_path, x) for x in files]
+        full_out = [os.path.join(opts.out_path, x) for x in files]
         if opts.allow_different_dimensions:
-            ffwd_different_dimensions(full_in, full_out, opts.checkpoint_dir, 
-                    device_t=opts.device, batch_size=opts.batch_size)
-        else :
+            ffwd_different_dimensions(full_in, full_out, opts.checkpoint_dir,
+                                      device_t=opts.device, batch_size=opts.batch_size)
+        else:
             ffwd(full_in, full_out, opts.checkpoint_dir, device_t=opts.device,
-                    batch_size=opts.batch_size)
+                 batch_size=opts.batch_size)
+
 
 if __name__ == '__main__':
     main()
